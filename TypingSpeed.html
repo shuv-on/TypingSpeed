@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Typing Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; height: 150px; font-size: 16px; }
+    .stats { margin-top: 20px; }
+    .stats div { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Typing Tracker</h1>
+  <label for="time">Set Timer (seconds): </label>
+  <input type="number" id="time" value="60" min="10" max="600" />
+  <button onclick="startTyping()">Start</button>
+  <p id="countdown"></p>
+  <textarea id="typingArea" disabled oninput="trackTyping()"></textarea>
+  <div class="stats">
+    <div>Words: <span id="wordCount">0</span></div>
+    <div>Characters (with spaces): <span id="charWithSpace">0</span></div>
+    <div>Characters (without spaces): <span id="charWithoutSpace">0</span></div>
+    <div>Backspaces: <span id="backspaceCount">0</span></div>
+    <div>Double spaces: <span id="doubleSpaceCount">0</span></div>
+    <div>Misspelled words: <span id="misspelledCount">0</span></div>
+    <div>WPM: <span id="wpm">0</span></div>
+  </div>
+
+  <script>
+    let timer;
+    let timeLeft;
+    let startTime;
+    let backspaceCounter = 0;
+    let lastLength = 0;
+
+    function startTyping() {
+      timeLeft = parseInt(document.getElementById('time').value);
+      document.getElementById('typingArea').value = '';
+      document.getElementById('typingArea').disabled = false;
+      document.getElementById('typingArea').focus();
+      document.getElementById('wordCount').textContent = '0';
+      document.getElementById('charWithSpace').textContent = '0';
+      document.getElementById('charWithoutSpace').textContent = '0';
+      document.getElementById('backspaceCount').textContent = '0';
+      document.getElementById('doubleSpaceCount').textContent = '0';
+      document.getElementById('misspelledCount').textContent = '0';
+      document.getElementById('wpm').textContent = '0';
+
+      backspaceCounter = 0;
+      lastLength = 0;
+      startTime = new Date();
+
+      updateCountdown();
+      clearInterval(timer); // আগের টাইমার থাকলে বন্ধ করো
+      timer = setInterval(() => {
+        timeLeft--;
+        updateCountdown();
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          document.getElementById('typingArea').disabled = true;
+        }
+      }, 1000);
+    }
+
+    function updateCountdown() {
+      document.getElementById('countdown').textContent = `Time left: ${timeLeft} seconds`;
+    }
+
+    function trackTyping() {
+      const text = document.getElementById('typingArea').value;
+
+      // Count words
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      document.getElementById('wordCount').textContent = words.length;
+
+      // Characters
+      document.getElementById('charWithSpace').textContent = text.length;
+      document.getElementById('charWithoutSpace').textContent = text.replace(/\s/g, '').length;
+
+      // Backspace count
+      if (text.length < lastLength) {
+        backspaceCounter++;
+      }
+      lastLength = text.length;
+      document.getElementById('backspaceCount').textContent = backspaceCounter;
+
+      // Double space count
+      const doubleSpaces = (text.match(/  /g) || []).length;
+      document.getElementById('doubleSpaceCount').textContent = doubleSpaces;
+
+      // Misspelled words (basic attempt using spellcheckable input)
+      let misspelled = 0;
+      if ("spellcheck" in document.createElement("textarea")) {
+        words.forEach(word => {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = word;
+          input.setAttribute("spellcheck", true);
+          document.body.appendChild(input);
+          if (!input.checkValidity()) {
+            misspelled++;
+          }
+          document.body.removeChild(input);
+        });
+      }
+      document.getElementById('misspelledCount').textContent = misspelled;
+
+      // WPM
+      const elapsedSeconds = (new Date() - startTime) / 1000;
+      const wpm = Math.round((words.length / elapsedSeconds) * 60);
+      document.getElementById('wpm').textContent = isFinite(wpm) ? wpm : 0;
+    }
+  </script>
+</body>
+</html>
